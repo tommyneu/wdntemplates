@@ -210,7 +210,7 @@ module.exports = function (grunt) {
 
   // load all grunt plugins matching the ['grunt-*', '@*/grunt-*'] patterns
   require('load-grunt-tasks')(grunt);
-  const nodeSass = require('node-sass');
+  const nodeSass = require('sass');
   const jpegrecompress = require('imagemin-jpeg-recompress')
   const svgo = require('imagemin-svgo')
   const webp = require('imagemin-webp');
