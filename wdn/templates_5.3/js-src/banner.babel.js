@@ -3,7 +3,7 @@ function displayWDNNoticeBanner() {
     var bannerEnabled = true;
     if (bannerEnabled) {
         var messageContent = false;
-        var messageSessionKey = 'wndNoticeMessage';
+        var messageSessionKey = 'wdnNoticeMessage';
         var sessionContent = sessionStorage.getItem(messageSessionKey);
 
         // clear saved message every five minutes
