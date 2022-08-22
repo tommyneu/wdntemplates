@@ -6,8 +6,8 @@ function displayWDNNoticeBanner() {
         var messageSessionKey = 'wdnNoticeMessage';
         var sessionContent = sessionStorage.getItem(messageSessionKey);
 
-        // clear saved message every five minutes
-        setInterval(function(){ sessionStorage.removeItem(messageSessionKey); }, 300000);
+        // clear saved message every fifteen minutes
+        setInterval(function(){ sessionStorage.removeItem(messageSessionKey); }, (15 * 60 * 1000) );
 
         if (sessionContent) {
             messageContent = sessionContent;
