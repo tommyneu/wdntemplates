@@ -453,6 +453,11 @@
         </script>
       </div>
 
+      <div class="dcf-mt-6">
+        <h2 class="dcf-mt-6">Icons</h2>
+        <div class="dcf-i-plus"></div>
+      </div>
+
       <h2 class="dcf-mt-6">Forms</h2>
 
       <form class="dcf-form" action="?" method="post">
