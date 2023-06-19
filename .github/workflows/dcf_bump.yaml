@@ -2,11 +2,7 @@ name: Bump DCF Version
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
-
-  push:
-    -branchs:
-      - '5.3'
+    - cron: "0 */1 * * *"
 
 jobs:
   check-commit:
