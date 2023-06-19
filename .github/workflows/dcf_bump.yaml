@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+          with:
+            persist-credentials: false
 
       - name: Get latest commit timestamp
         id: get-commit
@@ -48,9 +50,6 @@ jobs:
 
       - name: Modify package-lock.json
         id: modify-file
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
         run: |
           # Read the package-lock.json file
           FILE_PATH="package-lock.json"
