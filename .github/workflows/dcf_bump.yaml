@@ -36,8 +36,8 @@ jobs:
           TIME_DIFF=$((CURRENT_TIMESTAMP - LATEST_TIMESTAMP))
           echo "Time difference: $TIME_DIFF seconds"
           
-          # Check if there was a commit within the last 12 hours (43200 seconds)
-          if [ $TIME_DIFF -lt 43200 ]; then
+          # Check if there was a commit within the last 1 hours (3600 seconds)
+          if [ $TIME_DIFF -lt 3600 ]; then
             echo "Recent commit found!"
           else
             echo "No recent commit"
