@@ -59,6 +59,8 @@ jobs:
           
           # Overwrite the modified content to the file
           echo "$UPDATED_CONTENT" > $FILE_PATH
+
+      - name: Create pull request
         uses: gr2m/create-or-update-pull-request-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
