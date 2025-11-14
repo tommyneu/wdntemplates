@@ -108,6 +108,7 @@ export default ({ mode }) => {
                     'header-global-1' : 'wdn/templates_6.0/js-src/header-global-1.js',
                     'head-2'          : 'wdn/templates_6.0/js-src/head-2.js',
                     'nav-container-2' : 'wdn/templates_6.0/js-src/nav-container-2.js',
+                    'museum-after-head-2' : 'wdn/templates_6.0/js-src/museum-after-head-2.js',
 
                     'plugins/plugin.tab'                  : 'wdn/templates_6.0/js-src/plugins/multi/tab.js',
                     'plugins/plugin.toggle-button'        : 'wdn/templates_6.0/js-src/plugins/multi/toggle-button.js',
@@ -156,6 +157,9 @@ export default ({ mode }) => {
                     'components/component.event-list'           : 'wdn/templates_6.0/js-src/components/unl-event-list.js',
                     'components/component.card-as-link'         : 'wdn/templates_6.0/js-src/components/unl-card-as-link.js',
                     'components/component.analytics'            : 'wdn/templates_6.0/js-src/components/unl-analytics.js',
+
+                    'components/component.museum-search'         : 'wdn/templates_6.0/js-src/components/museum-search.js',
+                    'plugins/plugin.museum-search'               : 'wdn/templates_6.0/js-src/plugins/single/museum-search.js',
 
                     'lib/unl-utility'      : 'wdn/templates_6.0/js-src/lib/unl-utility.js',
                     'lib/moment'           : 'wdn/templates_6.0/js-src/lib/moment.js',

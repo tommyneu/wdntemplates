@@ -42,7 +42,7 @@
   <header class="dcf-header" id="dcf-header" role="banner">
     <!--#include virtual="/wdn/templates_6.0/includes/global/header-global-1.html" -->
     <!--#include virtual="/wdn/templates_6.0/includes/global/idm.html" -->
-    <!--#include virtual="/wdn/templates_6.0/includes/global/search.html" -->
+    <!--#include virtual="/wdn/templates_6.0/includes/global/museum-search.html" -->
     <!--#include virtual="/wdn/templates_6.0/includes/global/header-global-2.html" -->
     <!--#include virtual="/wdn/templates_6.0/includes/global/logo-lockup-1.html" -->
     <!--#include virtual="/wdn/templates_6.0/includes/global/site-affiliation-1.html" -->
