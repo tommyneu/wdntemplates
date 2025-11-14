@@ -1,4 +1,4 @@
-import UNLDialog from '@js-src/components/unl-dialog.js';
+import UNLDialog from 'https://wdn-cdn.unl.edu/wdn/templates_6.0/js/components/component.dialog.js';
 
 export default class MuseumSearch {
     searchContainer = null;

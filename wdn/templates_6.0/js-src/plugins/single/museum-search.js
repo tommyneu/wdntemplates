@@ -1,6 +1,6 @@
-import searchCssUrl from '@scss/components-js/_search.scss?url';
-import dialogCssUrl from '@scss/components-js/_dialogs.scss?url';
-import { loadStyleSheet } from '@js-src/lib/unl-utility.js';
+const searchCssUrl = 'https://wdn-cdn.unl.edu/wdn/templates_6.0/css/components-js/_search.css';
+const dialogCssUrl = 'https://wdn-cdn.unl.edu/wdn/templates_6.0/css/components-js/_dialogs.css';
+import { loadStyleSheet } from 'https://wdn-cdn.unl.edu/wdn/templates_6.0/js/lib/unl-utility.js';
 
 /**
  * This is where the imported class will be stored
