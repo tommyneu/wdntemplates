@@ -1,4 +1,5 @@
 import { getCookie, loadJS, isValidateEmail } from '@js-src/lib/unl-utility.js';
+import defaultAvatarUrl from '@images/default-avatar.jpg';
 
 export default class UNLIdm {
 
@@ -10,15 +11,15 @@ export default class UNLIdm {
 
     locationEncoded = encodeURIComponent(window.location);
 
-    whoamiUrl = 'https://whoami.unl.edu/?id=';
+    whoamiUrl = `${(import.meta.env.VITE_UNL_WHOAMI_URL || 'https://whoami.unl.edu')}/?id=`;
 
-    userLookupUrl = 'https://directory.unl.edu/people/';
+    userLookupUrl = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/people/`;
 
-    directoryURL = 'https://directory.unl.edu/';
+    directoryURL = import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu';
 
-    emailToUidURL = 'https://directory.unl.edu/api/v1/emailToUID?email=';
+    emailToUidURL = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/api/v1/emailToUID?email=`;
 
-    avatarUrl = 'https://directory.unl.edu/avatar/';
+    avatarUrl = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/avatar/`;
 
     localStorageKey = 'UNL_IDM';
 
@@ -48,23 +49,26 @@ export default class UNLIdm {
         window.UNL.idm = window.UNL.idm || {};
         window.UNL.idm.config = window.UNL.idm.config || {};
 
-        if ('loginRoute' in window.UNL.idm.config && typeof window.UNL.idm.config.loginRoute === 'string') {
+        if ('loginRoute' in window.UNL.idm.config && typeof window.UNL.idm.config.loginRoute === 'string' && window.UNL.idm.config.loginRoute !== '') {
             this.setLoginRoute(window.UNL.idm.config.loginRoute);
-        } else if ('loginRoute' in options && typeof options.loginRoute === 'string') {
+        } else if ('loginRoute' in options && typeof options.loginRoute === 'string' && options.loginRoute !== '') {
             this.setLoginRoute(options.loginRoute);
         }
-        if ('logoutRoute' in window.UNL.idm.config && typeof window.UNL.idm.config.logoutRoute === 'string') {
+        if ('logoutRoute' in window.UNL.idm.config && typeof window.UNL.idm.config.logoutRoute === 'string' && window.UNL.idm.config.logoutRoute !== '') {
             this.setLogoutRoute(window.UNL.idm.config.logoutRoute);
-        } else if ('logoutRoute' in options && typeof options.logoutRoute === 'string') {
+        } else if ('logoutRoute' in options && typeof options.logoutRoute === 'string' && options.logoutRoute !== '') {
             this.setLogoutRoute(options.logoutRoute);
         }
-        if ('serverUser' in window.UNL.idm.config && typeof window.UNL.idm.config.serverUser === 'string') {
+        if ('serverUser' in window.UNL.idm.config && typeof window.UNL.idm.config.serverUser === 'string' && window.UNL.idm.config.serverUser !== '') {
             this.setServerUser(window.UNL.idm.config.serverUser);
-        } else if ('serverUser' in options && typeof options.serverUser === 'string') {
+        } else if ('serverUser' in options && typeof options.serverUser === 'string' && options.serverUser !== '') {
             this.setServerUser(options.serverUser);
         }
 
         window.UNL.idm.pushConfig = (configProp, configValue) => {
+            if (configValue === '') {
+                return;
+            }
             switch (configProp) {
             case 'loginRoute':
                 this.setLoginRoute(configValue);
@@ -236,11 +240,14 @@ export default class UNLIdm {
      */
     async #fetchClientUserDataFromWhoami() {
         try {
-            await loadJS(`${this.whoamiUrl}${this.ssoCookieData}`);
+            await loadJS(`${this.whoamiUrl}${this.ssoCookieData}`, false, 5000);
             if (window.WDN.idm.user) {
                 const user = window.WDN.idm.user;
                 delete window.WDN.idm.user;
                 if ('uid' in user && typeof user.uid === 'string') {
+                    if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+                        return null;
+                    }
                     return user;
                 }
                 return null;
@@ -364,11 +371,19 @@ export default class UNLIdm {
      * @returns { Promise<String|null> } User's uid or null if failed
      */
     async #fetchUIDFromEmail() {
+        if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+            return null;
+        }
         if (!('email' in this.serverSideUser)) {
             return null;
         }
         try {
-            const response = await fetch(`${this.emailToUidURL}${this.serverSideUser.email}`);
+            const response = await fetch(
+                `${this.emailToUidURL}${this.serverSideUser.email}`,
+                {
+                    signal: AbortSignal.timeout(5000),
+                },
+            );
             if (!response.ok) {
                 return null;
             }
@@ -393,11 +408,19 @@ export default class UNLIdm {
      * @returns { Promise<Object|null> } user's data or null if failed
      */
     async #fetchServerUserDataFromDirectory() {
+        if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+            return null;
+        }
         if (!('uid' in this.serverSideUser)) {
             return null;
         }
         try {
-            const response = await fetch(`${this.userLookupUrl}${this.serverSideUser.uid}?format=json`);
+            const response = await fetch(
+                `${this.userLookupUrl}${this.serverSideUser.uid}?format=json`,
+                {
+                    signal: AbortSignal.timeout(5000),
+                },
+            );
             if (!response.ok) {
                 return null;
             }
@@ -598,16 +621,12 @@ export default class UNLIdm {
             const userDisplayName = this.getDisplayName();
             const userAvatarUrl = `${this.avatarUrl}${this.clientSideUser.uid}`;
             this.renderQuasiLoggedInState(userDisplayName, userAvatarUrl);
-        } else if (this.clientSideUser === null && this.serverSideUser !== null) {
+        } else if (this.serverSideUser !== null) {
             // Display Logged In State
             // Using server side user data
+            // We always use the server side user's data since there could be a masquerade type auth set up
             const userDisplayName = this.#getServerUserDisplayName();
             const userAvatarUrl = this.#getServerUserAvatarUrl();
-            this.renderLoggedInState(userDisplayName, userAvatarUrl);
-        } else {
-            // Display Logged In State
-            const userDisplayName = this.#getClientUserDisplayName();
-            const userAvatarUrl = `${this.avatarUrl}${this.clientSideUser.uid}`;
             this.renderLoggedInState(userDisplayName, userAvatarUrl);
         }
     }
@@ -680,12 +699,20 @@ export default class UNLIdm {
         imgs.forEach((singleImg) => {
             singleImg.classList.add('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100%" src="${userAvatarUrl}" alt>`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const bigImgs = Array.from(document.querySelectorAll('.unl-idm-avatar'));
         bigImgs.forEach((singleImg) => {
             singleImg.classList.add('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100%" src="${userAvatarUrl}" alt="">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const viewProfileLinks = Array.from(document.querySelectorAll('.unl-idm-view-profile a'));
@@ -725,12 +752,20 @@ export default class UNLIdm {
         imgs.forEach((singleImg) => {
             singleImg.classList.remove('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100%" src="${userAvatarUrl}" alt>`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const bigImgs = Array.from(document.querySelectorAll('.unl-idm-avatar'));
         bigImgs.forEach((singleImg) => {
             singleImg.classList.remove('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100%" src="${userAvatarUrl}" alt="">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const viewProfileLinks = Array.from(document.querySelectorAll('.unl-idm-view-profile a'));

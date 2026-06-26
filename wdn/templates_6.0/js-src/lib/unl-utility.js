@@ -139,12 +139,19 @@ export function isValidateEmail(email) {
  * @param {string} jsSrc
  * @returns {Promise<void>}
  */
-export function loadJS(jsSrc, module=false) {
+export function loadJS(jsSrc, module=false, timeoutMs=-1) {
     return new Promise((resolve, reject) => {
         const scriptAlreadyThere = document.querySelector(`script[src="${jsSrc}"]`);
         if (scriptAlreadyThere !== null) {
             resolve();
             return;
+        }
+
+        // Add timeout if needed
+        if (timeoutMs !== -1) {
+            setTimeout(() => {
+                reject(new Error(`Timeout to load script: ${jsSrc}`));
+            }, timeoutMs);
         }
 
         // If the stylesheet is not already there then load it
