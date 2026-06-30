@@ -1,4 +1,5 @@
 import { getCookie, loadJS, isValidateEmail } from '@js-src/lib/unl-utility.js';
+import defaultAvatarUrl from '@images/default-avatar.jpg';
 
 export default class UNLIdm {
 
@@ -12,21 +13,19 @@ export default class UNLIdm {
 
     locationEncoded = encodeURIComponent(window.location);
 
-    whoamiUrl = 'https://whoami.unl.edu/?id=';
+    whoamiUrl = `${(import.meta.env.VITE_UNL_WHOAMI_URL || 'https://whoami.unl.edu')}/?id=`;
 
-    userLookupUrl = 'https://directory.unl.edu/people/';
+    userLookupUrl = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/people/`;
 
-    directoryURL = 'https://directory.unl.edu/';
+    directoryURL = import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu';
 
-    emailToUidURL = 'https://directory.unl.edu/api/v1/emailToUID?email=';
+    emailToUidURL = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/api/v1/emailToUID?email=`;
 
-    avatarUrl = 'https://directory.unl.edu/avatar/';
+    avatarUrl = `${(import.meta.env.VITE_UNL_DIRECTORY_URL || 'https://directory.unl.edu')}/avatar/`;
 
     localStorageKey = 'UNL_IDM';
 
     clientSideUser = null;
-
-    failedToLoadClientSideUser = false;
 
     serverSideUser = null;
 
@@ -94,7 +93,6 @@ export default class UNLIdm {
         if (this.ssoCookieData !== null) {
             this.#loadClientUser();
         } else {
-            this.failedToLoadClientSideUser = true;
             this.#loadServerUser();
         }
 
@@ -200,9 +198,6 @@ export default class UNLIdm {
                 this.#render();
             }
         } else {
-            // If we did not load the user correctly
-            // then we will check if we can load the server user
-            this.failedToLoadClientSideUser = true;
             await this.#loadServerUser();
         }
     }
@@ -247,11 +242,14 @@ export default class UNLIdm {
      */
     async #fetchClientUserDataFromWhoami() {
         try {
-            await loadJS(`${this.whoamiUrl}${this.ssoCookieData}`);
+            await loadJS(`${this.whoamiUrl}${this.ssoCookieData}`, false, 5000);
             if (window.WDN.idm.user) {
                 const user = window.WDN.idm.user;
                 delete window.WDN.idm.user;
                 if ('uid' in user && typeof user.uid === 'string') {
+                    if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+                        return null;
+                    }
                     return user;
                 }
                 return null;
@@ -353,16 +351,15 @@ export default class UNLIdm {
             return;
         }
 
-        if (this.failedToLoadClientSideUser) {
-            if ('inputType' in this.serverSideUser && this.serverSideUser.inputType === 'email') {
-                // get their uid from email
-                const uid = await this.#fetchUIDFromEmail();
-                this.serverSideUser.uid = uid;
-            }
-
-            const userData = await this.#fetchServerUserDataFromDirectory();
-            this.serverSideUser.data = userData;
+        if ('inputType' in this.serverSideUser && this.serverSideUser.inputType === 'email') {
+            // get their uid from email
+            const uid = await this.#fetchUIDFromEmail();
+            this.serverSideUser.uid = uid;
         }
+
+        const userData = await this.#fetchServerUserDataFromDirectory();
+        this.serverSideUser.data = userData;
+
         if (this.#isReadyToRender === true) {
             this.#render();
         }
@@ -375,11 +372,19 @@ export default class UNLIdm {
      * @returns { Promise<String|null> } User's uid or null if failed
      */
     async #fetchUIDFromEmail() {
+        if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+            return null;
+        }
         if (!('email' in this.serverSideUser)) {
             return null;
         }
         try {
-            const response = await fetch(`${this.emailToUidURL}${this.serverSideUser.email}`);
+            const response = await fetch(
+                `${this.emailToUidURL}${this.serverSideUser.email}`,
+                {
+                    signal: AbortSignal.timeout(5000),
+                },
+            );
             if (!response.ok) {
                 return null;
             }
@@ -404,10 +409,19 @@ export default class UNLIdm {
      * @returns { Promise<Object|null> } user's data or null if failed
      */
     async #fetchServerUserDataFromDirectory() {
+        if (import.meta.env.VITE_MOCK_DIRECTORY_DOWN === 'true') {
+            return null;
+        }
         if (!('uid' in this.serverSideUser)) {
             return null;
         }
         try {
+            const response = await fetch(
+                `${this.userLookupUrl}${this.serverSideUser.uid}?format=json`,
+                {
+                    signal: AbortSignal.timeout(5000),
+                },
+            );
             const response = await fetch(`${this.userLookupUrl}${this.serverSideUser.uid}?format=json`);
             if (!response.ok) {
                 return null;
@@ -533,10 +547,10 @@ export default class UNLIdm {
      * @returns { String } User's primary affiliation or 'None';
      */
     getPrimaryAffiliation() {
-        if (this.clientSideUser !== null) {
-            return this.clientSideUser?.eduPersonPrimaryAffiliation?.[0] || 'None';
-        } else if (this.serverSideUser !== null) {
+        if (this.serverSideUser !== null) {
             return this.serverSideUser?.data?.eduPersonPrimaryAffiliation?.[0] || 'None';
+        } else if (this.clientSideUser !== null) {
+            return this.clientSideUser?.eduPersonPrimaryAffiliation?.[0] || 'None';
         }
 
         return 'None';
@@ -547,10 +561,10 @@ export default class UNLIdm {
      * @returns { String } User's nick name or first name or empty string
      */
     getDisplayName() {
-        if (this.clientSideUser !== null) {
-            return this.#getClientUserDisplayName() || '';
-        } else if (this.serverSideUser !== null) {
+        if (this.serverSideUser !== null) {
             return this.#getServerUserDisplayName()  || '';
+        } else if (this.clientSideUser !== null) {
+            return this.#getClientUserDisplayName() || '';
         }
         return '';
     }
@@ -560,10 +574,10 @@ export default class UNLIdm {
      * @returns { String } User's Full Name or empty string
      */
     getFullName() {
-        if (this.clientSideUser !== null) {
-            return this.#getClientUserFullName()  || '';
-        } else if (this.serverSideUser !== null) {
+        if (this.serverSideUser !== null) {
             return this.#getServerUserFullName()  || '';
+        } else if (this.clientSideUser !== null) {
+            return this.#getClientUserFullName() || '';
         }
         return '';
     }
@@ -573,10 +587,10 @@ export default class UNLIdm {
      * @returns { String } User's email address or empty string
      */
     getEmailAddress() {
-        if (this.clientSideUser !== null) {
-            return this.clientSideUser?.mail?.[0] || 'None';
-        } else if (this.serverSideUser !== null) {
+        if (this.serverSideUser !== null) {
             return this.serverSideUser?.data?.mail?.[0] || 'None';
+        } else if (this.clientSideUser !== null) {
+            return this.clientSideUser?.mail?.[0] || 'None';
         }
         return '';
     }
@@ -586,10 +600,10 @@ export default class UNLIdm {
      * @returns { String } Directory profile URL or directory home page url
      */
     getProfileUrl() {
-        if (this.clientSideUser !== null) {
-            return `${this.userLookupUrl}${this.clientSideUser.uid}`;
-        } else if (this.serverSideUser !== null) {
+        if (this.serverSideUser !== null) {
             return `${this.userLookupUrl}${this.serverSideUser.uid}`;
+        } else if (this.clientSideUser !== null) {
+            return `${this.userLookupUrl}${this.clientSideUser.uid}`;
         }
         return this.directoryURL;
     }
@@ -699,12 +713,20 @@ export default class UNLIdm {
         imgs.forEach((singleImg) => {
             singleImg.classList.add('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100% dcf-circle" src="${userAvatarUrl}" alt="Avatar for ${this.getFullName()}">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const bigImgs = Array.from(document.querySelectorAll('.unl-idm-avatar'));
         bigImgs.forEach((singleImg) => {
             singleImg.classList.add('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100% dcf-circle" src="${userAvatarUrl}" alt="Avatar for ${this.getFullName()}">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const viewProfileLinks = Array.from(document.querySelectorAll('.unl-idm-view-profile'));
@@ -743,6 +765,10 @@ export default class UNLIdm {
         imgs.forEach((singleImg) => {
             singleImg.classList.remove('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100% dcf-circle" src="${userAvatarUrl}" alt="Avatar for ${this.getFullName()}">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const avatarContainer = Array.from(document.querySelectorAll('.unl-idm-avatar-container'));
@@ -754,6 +780,10 @@ export default class UNLIdm {
         bigImgs.forEach((singleImg) => {
             singleImg.classList.remove('unl-idm-status-quasi');
             singleImg.innerHTML = `<img class="dcf-h-100% dcf-w-100% dcf-circle" src="${userAvatarUrl}" alt="Avatar for ${this.getFullName()}">`;
+            const imgElement = singleImg.querySelector('img');
+            imgElement.addEventListener('error', () => {
+                imgElement.src = defaultAvatarUrl;
+            }, { once: true });
         });
 
         const viewProfileLinks = Array.from(document.querySelectorAll('.unl-idm-view-profile'));
